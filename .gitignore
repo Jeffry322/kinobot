@@ -1,0 +1,28 @@
+## Ignore Visual Studio / Rider
+.vs/
+.idea/
+*.sln.DotSettings.user
+*.user
+*.userosscache
+*.sln.docstates
+
+## Ignore build artifacts
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+
+## Ignore published output
+publish/
+
+## Ignore .NET Core / ASP.NET Core secrets
+# Generally, we want to keep appsettings.json but without secrets.
+# We ignore specific environment settings that might contain secrets.
+appsettings.Local.json
+
+## Ignore other system files
+.DS_Store
+thumbs.db
