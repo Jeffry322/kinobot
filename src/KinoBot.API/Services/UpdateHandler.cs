@@ -23,11 +23,14 @@ public sealed class UpdateHandler(
     {
         switch (update.Type)
         {
-            case Telegram.Bot.Types.Enums.UpdateType.InlineQuery:
+            case UpdateType.InlineQuery:
                 await HandleInlineQuery(bot, update.InlineQuery!, ct);
                 break;
-            case Telegram.Bot.Types.Enums.UpdateType.CallbackQuery:
+            case UpdateType.CallbackQuery:
                 await HandleCallbackQuery(bot, update, ct);
+                break;
+            case UpdateType.ChosenInlineResult:
+                await HandleChosenInlineResult(bot, update.ChosenInlineResult!, ct);
                 break;
         }
     }
@@ -79,30 +82,21 @@ public sealed class UpdateHandler(
 
                 var description = $"Rating: {result.VoteAverage:F1}/10 | {result.MediaTypeDisplay.ToUpper()}";
 
-                var provider = mediaProviderFactory.GetProvider(result.MediaType);
-                var caption = provider.FormatCaption(result);
-
-                List<InlineKeyboardButton> buttons =
-                [
-                    InlineButtonFactory.WithCallbackData("➕ Get Details!",
-                        new GetMediaDetailsCallbackData()
-                        {
-                            MediaId = result.Id,
-                            MediaType = result.MediaTypeDisplay,
-                            SenderId = inlineQuery.From.Id
-                        }),
-                ];
+                var replyMarkup = new InlineKeyboardMarkup(
+                    InlineKeyboardButton.WithCallbackData("🎬", "null")
+                );
+                
                 return new InlineQueryResultArticle(
                     id: $"{result.MediaType}:{result.Id}",
                     title: title,
-                    inputMessageContent: new InputTextMessageContent(caption)
+                    inputMessageContent: new InputTextMessageContent(title)
                     {
-                        ParseMode = Telegram.Bot.Types.Enums.ParseMode.Html
+                        ParseMode = ParseMode.Html
                     })
                 {
                     Description = description,
                     ThumbnailUrl = PosterUrlFactory.GetPosterUrl(result.PosterPath),
-                    ReplyMarkup = buttons
+                    ReplyMarkup = replyMarkup
                 };
             });
         
@@ -113,6 +107,43 @@ public sealed class UpdateHandler(
         await bot.AnswerInlineQuery(inlineQuery.Id, inlineResults, cancellationToken: ct, nextOffset: nextOffset);
     }
 
+    private async Task HandleChosenInlineResult(ITelegramBotClient bot,
+        ChosenInlineResult chosenInlineResult,
+        CancellationToken ct)
+    {
+        var mediaType = chosenInlineResult.ResultId.Split(':')[0];
+        var id = chosenInlineResult.ResultId.Split(':')[1];
+
+        InlineMessage editMessage;
+        
+        if (string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase))
+        {
+            var movie = await tmdbService.GetMovieByIdAsync(int.Parse(id), ct);
+            if (movie == null) return;
+            
+            var caption = mediaProviderFactory.GetProvider(mediaType).FormatCaption(movie);
+            editMessage = new InlineMessage
+            {
+                CaptionHtml = caption,
+                InlineMessageId = chosenInlineResult!.InlineMessageId!
+            };
+        }
+        else
+        {
+            var tvShow = await tmdbService.GetTvShowByIdAsync(int.Parse(id), ct);
+            if (tvShow is null) return;
+
+            var caption = mediaProviderFactory.GetProvider(mediaType).FormatCaption(tvShow);
+            editMessage = new InlineMessage
+            {
+                CaptionHtml = caption,
+                InlineMessageId = chosenInlineResult!.InlineMessageId!
+            };
+        }
+
+        await bot.EditMessageCaption(editMessage, ct);
+    }
+    
     public Task HandleErrorAsync(ITelegramBotClient bot,
         Exception exception,
         HandleErrorSource source,

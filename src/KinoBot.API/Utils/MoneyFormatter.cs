@@ -16,8 +16,8 @@ public static class MoneyFormatter
     private static string FormatValue(decimal value, string suffix)
     {
         return value % 1 == 0 
-            ? $"{(int)value} {suffix}" 
-            : $"{value:0.##} {suffix}";
+            ? $"${(int)value} {suffix}" 
+            : $"${value:0.##} {suffix}";
     }
 
 }
