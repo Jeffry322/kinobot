@@ -4,30 +4,38 @@ namespace KinoBot.API.Models;
 
 public class SearchResult
 {
-    [JsonPropertyName("id")] public int Id { get; init; }
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
 
     [JsonPropertyName("media_type")]
     public required string MediaType { get; init; } = string.Empty;
 
-    [JsonPropertyName("title")] public string? Title { get; init; }
+    [JsonPropertyName("title")]
+    public string? Title { get; init; }
 
-    [JsonPropertyName("original_title")] public string? OriginalTitle { get; init; }
+    [JsonPropertyName("original_title")]
+    public string? OriginalTitle { get; init; }
 
-    [JsonPropertyName("name")] public string? Name { get; init; }
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
 
-    [JsonPropertyName("original_name")] public string? OriginalName { get; init; }
+    [JsonPropertyName("original_name")]
+    public string? OriginalName { get; init; }
 
-    [JsonPropertyName("overview")] public string? Overview { get; init; }
+    [JsonPropertyName("release_date")]
+    public string? ReleaseDate { get; init; }
 
-    [JsonPropertyName("release_date")] public string? ReleaseDate { get; init; }
+    [JsonPropertyName("first_air_date")]
+    public string? FirstAirDate { get; init; }
 
-    [JsonPropertyName("first_air_date")] public string? FirstAirDate { get; init; }
+    [JsonPropertyName("poster_path")]
+    public string? PosterPath { get; init; }
 
-    [JsonPropertyName("poster_path")] public string? PosterPath { get; init; }
+    [JsonPropertyName("vote_average")]
+    public double? VoteAverage { get; init; }
 
-    [JsonPropertyName("vote_average")] public double? VoteAverage { get; init; }
-
-    [JsonPropertyName("popularity")] public double Popularity { get; init; }
+    [JsonPropertyName("popularity")]
+    public double Popularity { get; init; }
 
     public string DisplayName => Title ?? Name ?? "Unknown";
     public string DisplayOriginalName => OriginalTitle ?? OriginalName ?? "Unknown";

@@ -13,7 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Views\" />
+    <Folder Include="CallbackData\" />
+    <Folder Include="CallbackQueriesHandlers\" />
   </ItemGroup>
 
 </Project>

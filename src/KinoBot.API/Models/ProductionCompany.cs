@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace KinoBot.API.Models;
 
-public sealed class Genre
+public sealed class ProductionCompany
 {
     [JsonPropertyName("name")]
-    public required string Name { get; init; }
+    public string Name { get; init; } = string.Empty;
 }

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using KinoBot.API.Abstractions;
-using KinoBot.API.CallbackData;
-using KinoBot.API.Utils;
+using KinoBot.API.Common.Extensions;
+using KinoBot.API.Common.Factories;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -14,10 +14,7 @@ namespace KinoBot.API.Services;
 
 public sealed class UpdateHandler(
     ILogger<UpdateHandler> logger,
-    ITmdbService tmdbService,
-    ICallbackQueryHandler<GetMediaDetailsCallbackData> getMediaDetailsCallbackQueryHandler,
-    ICallbackQueryHandler<GetBackCallbackData> getBackCallbackQueryHandler,
-    MediaProviderFactory mediaProviderFactory) : IUpdateHandler
+    ITmdbService tmdbService) : IUpdateHandler
 {
     public async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken ct)
     {
@@ -27,7 +24,7 @@ public sealed class UpdateHandler(
                 await HandleInlineQuery(bot, update.InlineQuery!, ct);
                 break;
             case UpdateType.CallbackQuery:
-                await HandleCallbackQuery(bot, update, ct);
+                await HandleCallbackQuery(bot, update.CallbackQuery!, ct);
                 break;
             case UpdateType.ChosenInlineResult:
                 await HandleChosenInlineResult(bot, update.ChosenInlineResult!, ct);
@@ -35,23 +32,11 @@ public sealed class UpdateHandler(
         }
     }
 
-    private async Task HandleCallbackQuery(ITelegramBotClient bot, Update update, CancellationToken ct)
+    private async Task HandleCallbackQuery(ITelegramBotClient bot, CallbackQuery callbackQuery, CancellationToken ct)
     {
-        var query = update.CallbackQuery!;
-        if (query.Data == null) return;
+        if (callbackQuery.Data == null) return;
 
-        var data = JsonSerializer.Deserialize<ICallbackData>(query.Data);
-
-        if (data is GetMediaDetailsCallbackData detailsData)
-        {
-            await getMediaDetailsCallbackQueryHandler
-                .HandleCallbackQuery(bot, query, detailsData, ct);
-        }
-        else if (data is GetBackCallbackData backData)
-        {
-            await getBackCallbackQueryHandler
-                .HandleCallbackQuery(bot, query, backData, ct);
-        }
+        var data = JsonSerializer.Deserialize<ICallbackData>(callbackQuery.Data);
     }
 
     private async Task HandleInlineQuery(ITelegramBotClient bot, InlineQuery inlineQuery, CancellationToken ct)
@@ -76,11 +61,14 @@ public sealed class UpdateHandler(
             .Select(result =>
             {
                 var year = result.DisplayDate.Split('-')[0];
+                
                 var title = result.DisplayName == result.DisplayOriginalName
                     ? $"{result.DisplayName} ({year})"
                     : $"{result.DisplayName} ({result.DisplayOriginalName}) ({year})";
-
-                var description = $"Rating: {result.VoteAverage:F1}/10 | {result.MediaTypeDisplay.ToUpper()}";
+                
+                var description = result.VoteAverage > 0 
+                    ? $"Rating: {result.VoteAverage:F1}/10 | {result.MediaTypeDisplay.ToUpper()}"
+                    : result.MediaTypeDisplay.ToUpper();
 
                 var replyMarkup = new InlineKeyboardMarkup(
                     InlineKeyboardButton.WithCallbackData("🎬", "null")
@@ -114,34 +102,15 @@ public sealed class UpdateHandler(
         var mediaType = chosenInlineResult.ResultId.Split(':')[0];
         var id = chosenInlineResult.ResultId.Split(':')[1];
 
-        InlineMessage editMessage;
+        var media = await tmdbService.GetMediaByIdAsync(int.Parse(id), mediaType, ct);
         
-        if (string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase))
+        if (media is null)
         {
-            var movie = await tmdbService.GetMovieByIdAsync(int.Parse(id), ct);
-            if (movie == null) return;
-            
-            var caption = mediaProviderFactory.GetProvider(mediaType).FormatCaption(movie);
-            editMessage = new InlineMessage
-            {
-                CaptionHtml = caption,
-                InlineMessageId = chosenInlineResult!.InlineMessageId!
-            };
+            return;
         }
-        else
-        {
-            var tvShow = await tmdbService.GetTvShowByIdAsync(int.Parse(id), ct);
-            if (tvShow is null) return;
-
-            var caption = mediaProviderFactory.GetProvider(mediaType).FormatCaption(tvShow);
-            editMessage = new InlineMessage
-            {
-                CaptionHtml = caption,
-                InlineMessageId = chosenInlineResult!.InlineMessageId!
-            };
-        }
-
-        await bot.EditMessageCaption(editMessage, ct);
+        
+        var view = media.ToView();
+        await bot.EditMessageCaption(view, chosenInlineResult.InlineMessageId!, ct);
     }
     
     public Task HandleErrorAsync(ITelegramBotClient bot,

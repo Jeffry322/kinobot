@@ -1,4 +1,4 @@
-namespace KinoBot.API.Enums;
+namespace KinoBot.API.Common.Enums;
 
 public enum CallbackType
 {

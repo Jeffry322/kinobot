@@ -2,7 +2,7 @@ using KinoBot.API.Configs;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
 
-namespace KinoBot.API;
+namespace KinoBot.API.Services;
 
 public class TelegramBotSetupService : IHostedService
 {

@@ -1,4 +1,4 @@
-namespace KinoBot.API.Utils;
+namespace KinoBot.API.Common.Utils;
 
 public static class CodeToFlagConvertor
 {

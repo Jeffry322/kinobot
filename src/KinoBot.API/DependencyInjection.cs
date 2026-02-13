@@ -1,9 +1,8 @@
 using System.Text.Json.Serialization;
 using KinoBot.API.Abstractions;
-using KinoBot.API.CallbackData;
-using KinoBot.API.CallbackQueriesHandlers;
 using KinoBot.API.Configs;
 using KinoBot.API.Services;
+using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 
 namespace KinoBot.API;
@@ -14,30 +13,43 @@ public static class DependencyInjection
     {
         public IServiceCollection AddApi(IConfigurationManager config)
         {
-            services.AddScoped<IUpdateHandler, UpdateHandler>();
-            services.AddScoped<ITmdbService, TmdbService>();
             services.AddControllers().AddJsonOptions(options =>
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-            services.AddTelegram(config);
-            services.AddTmdb(config);
-            services.AddMediaProviders();
-            services.AddCallbackQueryHandlers();
-
+            
+            services.AddHostedService<TelegramBotSetupService>();
+            
+            services
+                .AddTelegram(config)
+                .AddTmdb(config)
+                .AddCallbackQueryHandlers()
+                .AddCaching(config);
+            
             return services;
         }
 
-        private IServiceCollection AddMediaProviders()
+        private IServiceCollection AddCaching(IConfigurationManager config)
         {
-            services.AddScoped<IMediaProvider, MovieProvider>();
-            services.AddScoped<IMediaProvider, TvShowProvider>();
-            services.AddScoped<MediaProviderFactory>();
+            services.AddStackExchangeRedisCache(o =>
+                o.Configuration = config.GetConnectionString("Redis"));
+
+            services.AddHybridCache(options =>
+            {
+                options.DefaultEntryOptions = new HybridCacheEntryOptions
+                {
+                    Expiration = TimeSpan.FromHours(12),
+                    LocalCacheExpiration = TimeSpan.FromHours(1)
+                };
+            });
+
             return services;
         }
-
+        
         private IServiceCollection AddTelegram(IConfigurationManager config)
         {
             var botConfigSection = config.GetSection("BotConfiguration");
 
+            services.AddScoped<IUpdateHandler, UpdateHandler>();
+            
             services.Configure<BotConfiguration>(botConfigSection);
             services.AddHttpClient("tgwebhook").RemoveAllLoggers().AddTypedClient<ITelegramBotClient>(httpClient =>
                 new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient));
@@ -52,7 +64,8 @@ public static class DependencyInjection
             services.Configure<TmdbConfiguration>(tmdbConfigSection);
 
             services.AddTransient<TmdbAuthHandler>();
-
+            services.AddScoped<ITmdbService, TmdbService>();
+            
             var tmdbConfig = tmdbConfigSection.Get<TmdbConfiguration>();
             services.AddHttpClient<ITmdbClient, TmdbClient>(client =>
                 {
@@ -65,9 +78,7 @@ public static class DependencyInjection
 
         private IServiceCollection AddCallbackQueryHandlers()
         {
-            services.AddScoped<ICallbackQueryHandler<GetMediaDetailsCallbackData>, GetMediaDetailsCallbackQuery>();
-            services.AddScoped<ICallbackQueryHandler<GetBackCallbackData>, GetBackCallbackQueryHandler>();
-            return services;
+           return services;
         }
     }
 }

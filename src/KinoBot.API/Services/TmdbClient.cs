@@ -13,6 +13,7 @@ public class TmdbClient : ITmdbClient
         _httpClient = httpClient;
     }
 
+
     public async Task<Movie?> GetMovieByIdAsync(int movieId, CancellationToken cancellationToken = default)
     {
         try
@@ -40,7 +41,7 @@ public class TmdbClient : ITmdbClient
         }
     }
 
-    public async Task<TvShow?> GetTvShowByIdAsync(int tvShowId, CancellationToken cancellationToken = default)
+    public async Task<Series?> GetTvShowByIdAsync(int tvShowId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -54,7 +55,7 @@ public class TmdbClient : ITmdbClient
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            return JsonSerializer.Deserialize<TvShow>(content, new JsonSerializerOptions
+            return JsonSerializer.Deserialize<Series>(content, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
@@ -92,16 +93,28 @@ public class TmdbClient : ITmdbClient
         }
     }
 
-    public async Task<Stream> GetStreamAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<ExternalIds?> GetSeriesImdbId(int tvShowId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await _httpClient.GetStreamAsync(url, cancellationToken);
-            return response;
+            var response = await _httpClient.GetAsync($"tv/{tvShowId}/external_ids", cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            return JsonSerializer.Deserialize<ExternalIds>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
         }
         catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException($"Failed to get stream from URL '{url}'", ex);
+            throw new InvalidOperationException($"Failed to fetch external Ids for show {tvShowId} from TMDB API", ex);
         }
     }
 }

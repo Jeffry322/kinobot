@@ -1,4 +1,4 @@
-namespace KinoBot.API.Utils;
+namespace KinoBot.API.Common.Factories;
 
 public static class PosterUrlFactory
 {

@@ -2,7 +2,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace KinoBot.API.Enums;
+namespace KinoBot.API.Common.Enums;
 
 [JsonConverter(typeof(MediaTypeConverter))]
 public enum MediaType

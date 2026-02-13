@@ -2,7 +2,7 @@ using System.Text.Json;
 using KinoBot.API.Abstractions;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace KinoBot.API.Utils;
+namespace KinoBot.API.Common.Factories;
 
 public static class InlineButtonFactory
 {
