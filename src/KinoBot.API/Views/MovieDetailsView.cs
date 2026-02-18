@@ -1,5 +1,6 @@
 using System.Text;
 using KinoBot.API.Abstractions;
+using KinoBot.API.CallbackData;
 using KinoBot.API.Common.Factories;
 using KinoBot.API.Common.Utils;
 using KinoBot.API.Models;
@@ -7,7 +8,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KinoBot.API.Views;
 
-public sealed class MovieDetailsView(Movie movie) : IMediaView
+public sealed class MovieDetailsView(
+    Movie movie) : IMediaView
 {
     public string GetFormatedCaption()
     {
@@ -15,8 +17,8 @@ public sealed class MovieDetailsView(Movie movie) : IMediaView
 
         var year = movie.ReleaseDate?.Split('-')[0] ?? "N/A";
         var title = $"{movie.Title} ({year})";
-        var budget = movie.Budget == 0 ? "???" : MoneyFormatter.FormatMoney(movie.Budget);
-        var revenue = movie.Revenue == 0 ? "???" : MoneyFormatter.FormatMoney(movie.Revenue);
+        var budget = MoneyFormatter.FormatMoney(movie.Budget);
+        var revenue = MoneyFormatter.FormatMoney(movie.Revenue);
 
         if (!string.IsNullOrEmpty(movie.PosterPath))
         {
@@ -60,11 +62,14 @@ public sealed class MovieDetailsView(Movie movie) : IMediaView
 
         return builder.ToString();
     }
-    
+
     public InlineKeyboardMarkup GetReplyMarkup()
     {
         return new InlineKeyboardMarkup(
-            InlineButtonFactory.WithCallbackData("👥 Actors", new GetActorsCallbackData { MediaId = movie.Id, MediaType = "movie" }),
+            InlineButtonFactory.WithCallbackData("👥 Actors",
+                new GetActorsCallbackData { MediaId = movie.Id, MediaType = "movie" }),
+            InlineButtonFactory.WithCallbackData("👁 Add to Watchlist",
+                new AddMediaToWatchlistCallbackData { MediaId = movie.Id, MediaType = "movie" }),
             InlineKeyboardButton.WithUrl("🎬 IMDb", $"https://www.imdb.com/title/{movie.ImdbId}"));
     }
 }

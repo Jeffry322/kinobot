@@ -1,5 +1,6 @@
 using System.Text;
 using KinoBot.API.Abstractions;
+using KinoBot.API.CallbackData;
 using KinoBot.API.Common.Factories;
 using KinoBot.API.Common.Utils;
 using KinoBot.API.Models;
@@ -7,7 +8,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KinoBot.API.Views;
 
-public sealed class SeriesDetailsView(Series series) : IMediaView
+public sealed class SeriesDetailsView(
+    Series series) : IMediaView
 {
     public string GetFormatedCaption()
     {
@@ -62,7 +64,10 @@ public sealed class SeriesDetailsView(Series series) : IMediaView
     public InlineKeyboardMarkup GetReplyMarkup()
     {
         return new InlineKeyboardMarkup(
-            InlineButtonFactory.WithCallbackData("👥 Actors", new GetActorsCallbackData { MediaId = series.Id, MediaType = "series" }),
+            InlineButtonFactory.WithCallbackData("👥 Actors",
+                new GetActorsCallbackData { MediaId = series.Id, MediaType = "series" }),
+            InlineButtonFactory.WithCallbackData("👁 Add to Watchlist",
+                new AddMediaToWatchlistCallbackData { MediaId = series.Id, MediaType = "series" }),
             InlineKeyboardButton.WithUrl("🎬 IMDb", $"https://www.imdb.com/title/{series.ExternalIds?.ImdbId}"));
     }
 }

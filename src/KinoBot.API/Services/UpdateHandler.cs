@@ -1,5 +1,6 @@
 using System.Text.Json;
 using KinoBot.API.Abstractions;
+using KinoBot.API.CallbackData;
 using KinoBot.API.Common.Extensions;
 using KinoBot.API.Common.Factories;
 using Telegram.Bot;
@@ -14,9 +15,13 @@ namespace KinoBot.API.Services;
 
 public sealed class UpdateHandler(
     ILogger<UpdateHandler> logger,
-    ITmdbService tmdbService) : IUpdateHandler
+    ITmdbService tmdbService,
+    IWatchlistService watchlistService,
+    ICallbackQueryHandler<AddMediaToWatchlistCallbackData> addToWatchlistQueryHandler) : IUpdateHandler
 {
-    public async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken ct)
+    public async Task HandleUpdateAsync(ITelegramBotClient bot,
+        Update update,
+        CancellationToken ct = default)
     {
         switch (update.Type)
         {
@@ -31,18 +36,55 @@ public sealed class UpdateHandler(
                 break;
         }
     }
-
-    private async Task HandleCallbackQuery(ITelegramBotClient bot, CallbackQuery callbackQuery, CancellationToken ct)
+    
+    public Task HandleErrorAsync(ITelegramBotClient bot,
+        Exception exception,
+        HandleErrorSource source,
+        CancellationToken ct = default)
+    {
+        logger.LogError(exception, "Error while handling update: {Message}", exception.Message);
+        return Task.CompletedTask;
+    }
+    
+    private async Task HandleCallbackQuery(ITelegramBotClient bot,
+        CallbackQuery callbackQuery,
+        CancellationToken ct = default)
     {
         if (callbackQuery.Data == null) return;
 
         var data = JsonSerializer.Deserialize<ICallbackData>(callbackQuery.Data);
+
+        if (data is AddMediaToWatchlistCallbackData addMediaToWatchlistCallbackData)
+        {
+            await addToWatchlistQueryHandler.HandleCallbackQuery(bot, callbackQuery, addMediaToWatchlistCallbackData, ct);
+        }
     }
 
-    private async Task HandleInlineQuery(ITelegramBotClient bot, InlineQuery inlineQuery, CancellationToken ct)
+    private async Task HandleInlineQuery(ITelegramBotClient bot,
+        InlineQuery inlineQuery,
+        CancellationToken ct = default)
     {
+        var replyMarkup = new InlineKeyboardMarkup(
+            InlineKeyboardButton.WithCallbackData("🎬", "null")
+        );
+        
         if (string.IsNullOrEmpty(inlineQuery.Query))
+        {
+            var defaultInlineResults = new List<InlineQueryResult>();
+            
+            var entry = new InlineQueryResultArticle(
+                id: "random",
+                title: "Random movie from watchlist",
+                new InputTextMessageContent("Random movie from watchlist"))
+            {
+                ReplyMarkup = replyMarkup
+            };
+            
+            defaultInlineResults.Add(entry);
+            
+            await bot.AnswerInlineQuery(inlineQuery.Id, defaultInlineResults, cancellationToken: ct);
             return;
+        }
 
         int currentPage = 1;
         if (!string.IsNullOrEmpty(inlineQuery.Offset) && int.TryParse(inlineQuery.Offset, out int parsedPage))
@@ -69,10 +111,6 @@ public sealed class UpdateHandler(
                 var description = result.VoteAverage > 0 
                     ? $"Rating: {result.VoteAverage:F1}/10 | {result.MediaTypeDisplay.ToUpper()}"
                     : result.MediaTypeDisplay.ToUpper();
-
-                var replyMarkup = new InlineKeyboardMarkup(
-                    InlineKeyboardButton.WithCallbackData("🎬", "null")
-                );
                 
                 return new InlineQueryResultArticle(
                     id: $"{result.MediaType}:{result.Id}",
@@ -97,8 +135,16 @@ public sealed class UpdateHandler(
 
     private async Task HandleChosenInlineResult(ITelegramBotClient bot,
         ChosenInlineResult chosenInlineResult,
-        CancellationToken ct)
+        CancellationToken ct = default)
     {
+        if (chosenInlineResult.ResultId is "random")
+        {
+            var randomMedia = await GetRandomMovieFromWatchlist(chosenInlineResult.From.Id, ct);
+            if(randomMedia is null) return;
+            await bot.EditMessageCaption(randomMedia.ToView(), chosenInlineResult.InlineMessageId!, ct);
+            return;
+        }
+            
         var mediaType = chosenInlineResult.ResultId.Split(':')[0];
         var id = chosenInlineResult.ResultId.Split(':')[1];
 
@@ -113,12 +159,15 @@ public sealed class UpdateHandler(
         await bot.EditMessageCaption(view, chosenInlineResult.InlineMessageId!, ct);
     }
     
-    public Task HandleErrorAsync(ITelegramBotClient bot,
-        Exception exception,
-        HandleErrorSource source,
-        CancellationToken ct)
+    private async Task<IMedia?> GetRandomMovieFromWatchlist(long telegramUserId, CancellationToken ct = default)
     {
-        logger.LogError(exception, "Error while handling update: {Message}", exception.Message);
-        return Task.CompletedTask;
+        var result = await watchlistService.GetRandomMediaFromWatchlistAsync(telegramUserId, ct);
+
+        if (!result.IsSuccess)
+        {
+            return null;
+        }
+        
+        return result.Value;
     }
 }
