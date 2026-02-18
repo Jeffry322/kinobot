@@ -9,6 +9,7 @@ public static class MoneyFormatter
             >= 1_000_000_000 => FormatValue(dollars / 1_000_000_000m, "billion"),
             >= 1_000_000 => FormatValue(dollars / 1_000_000m, "million"),
             >= 1_000 => FormatValue(dollars / 1_000m, "k"),
+            <= 0 => "???",
             _ => $"${dollars}"
         };
     }

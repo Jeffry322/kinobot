@@ -8,5 +8,5 @@ public interface ICallbackQueryHandler<TCallbackData> where TCallbackData : ICal
   Task HandleCallbackQuery(ITelegramBotClient bot,
     CallbackQuery query,
     TCallbackData data,
-    CancellationToken ct);
+    CancellationToken ct = default);
 }

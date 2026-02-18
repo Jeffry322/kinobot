@@ -1,5 +1,6 @@
 using KinoBot.API;
 using KinoBot.API.Services;
+using Kinobot.Infrastructure;
 using Microsoft.Extensions.Caching.Hybrid;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,7 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsDevelopment())
     builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
-builder.Services.AddApi(builder.Configuration);
+builder.Services
+    .AddApi(builder.Configuration)
+    .AddInfrastructure(builder.Configuration);
 
 
 var app = builder.Build();

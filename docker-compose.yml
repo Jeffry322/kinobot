@@ -5,6 +5,20 @@
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [ "redis-server", "--appendonly", "yes" ]
+  
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dev-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "ChangeThisPassword!123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+
+
 volumes:
   redis-data:
+  mssql_data:

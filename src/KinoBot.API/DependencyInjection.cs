@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 using KinoBot.API.Abstractions;
+using KinoBot.API.CallbackData;
+using KinoBot.API.CallbackQueryHandlers;
 using KinoBot.API.Configs;
 using KinoBot.API.Services;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -13,17 +15,19 @@ public static class DependencyInjection
     {
         public IServiceCollection AddApi(IConfigurationManager config)
         {
-            services.AddControllers().AddJsonOptions(options =>
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-            
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
             services.AddHostedService<TelegramBotSetupService>();
-            
+            services.AddScoped<IWatchlistService, WatchlistService>();
+
             services
                 .AddTelegram(config)
                 .AddTmdb(config)
                 .AddCallbackQueryHandlers()
                 .AddCaching(config);
-            
+
             return services;
         }
 
@@ -43,16 +47,18 @@ public static class DependencyInjection
 
             return services;
         }
-        
+
         private IServiceCollection AddTelegram(IConfigurationManager config)
         {
             var botConfigSection = config.GetSection("BotConfiguration");
 
             services.AddScoped<IUpdateHandler, UpdateHandler>();
-            
+
             services.Configure<BotConfiguration>(botConfigSection);
-            services.AddHttpClient("tgwebhook").RemoveAllLoggers().AddTypedClient<ITelegramBotClient>(httpClient =>
-                new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient));
+            services.AddHttpClient("tgwebhook")
+                .RemoveAllLoggers()
+                .AddTypedClient<ITelegramBotClient>(httpClient =>
+                    new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient));
 
             return services;
         }
@@ -65,7 +71,7 @@ public static class DependencyInjection
 
             services.AddTransient<TmdbAuthHandler>();
             services.AddScoped<ITmdbService, TmdbService>();
-            
+
             var tmdbConfig = tmdbConfigSection.Get<TmdbConfiguration>();
             services.AddHttpClient<ITmdbClient, TmdbClient>(client =>
                 {
@@ -78,7 +84,11 @@ public static class DependencyInjection
 
         private IServiceCollection AddCallbackQueryHandlers()
         {
-           return services;
+            services
+                .AddScoped<ICallbackQueryHandler<AddMediaToWatchlistCallbackData>,
+                    AddMediaToWatchlistCallbackQueryHandler>();
+
+            return services;
         }
     }
 }
