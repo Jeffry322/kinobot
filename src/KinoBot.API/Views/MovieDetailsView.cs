@@ -1,5 +1,6 @@
 using System.Text;
 using KinoBot.API.Abstractions;
+using KinoBot.API.Common.Factories;
 using KinoBot.API.Common.Utils;
 using KinoBot.API.Models;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -63,6 +64,7 @@ public sealed class MovieDetailsView(Movie movie) : IMediaView
     public InlineKeyboardMarkup GetReplyMarkup()
     {
         return new InlineKeyboardMarkup(
-            InlineKeyboardButton.WithUrl("IMDb", $"https://www.imdb.com/title/{movie.ImdbId}"));
+            InlineButtonFactory.WithCallbackData("👥 Actors", new GetActorsCallbackData { MediaId = movie.Id, MediaType = "movie" }),
+            InlineKeyboardButton.WithUrl("🎬 IMDb", $"https://www.imdb.com/title/{movie.ImdbId}"));
     }
 }

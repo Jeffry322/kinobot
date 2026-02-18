@@ -6,6 +6,11 @@ namespace KinoBot.API.Services;
 
 public sealed class TmdbService(HybridCache cache, ITmdbClient tmdbClient) : ITmdbService
 {
+    public Task<ICollection<Person>> GetActorsByIdAsync(int mediaId, string mediaType, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<IMedia?> GetMediaByIdAsync(int mediaId,
         string mediaType,
         CancellationToken cancellationToken = default)
