@@ -1,11 +1,10 @@
 using Telegram.Bot;
-using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 
 namespace KinoBot.API.Abstractions;
 
-public interface IUpdateHandler
+public interface IUpdateHandler<in TUpdate> where TUpdate : IUpdate
 {
-    Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken ct);
-    Task HandleErrorAsync(ITelegramBotClient bot, Exception exception, HandleErrorSource source, CancellationToken ct);
+    bool CanHandle(TUpdate update);
+    Task HandleAsync(TUpdate update, ITelegramBotClient bot, CancellationToken ct = default);
 }

@@ -30,7 +30,7 @@ public sealed class BotController(IOptions<BotConfiguration> config) : Controlle
     public async Task<IActionResult> Post(
         [FromBody] Update update,
         [FromServices] ITelegramBotClient bot,
-        [FromServices] IUpdateHandler handleUpdateService,
+        [FromServices] IUpdateService handleUpdateService,
         CancellationToken ct)
     {
         if (Request.Headers["X-Telegram-Bot-Api-Secret-Token"] != config.Value.SecretToken)

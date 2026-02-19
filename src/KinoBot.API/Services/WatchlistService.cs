@@ -10,30 +10,35 @@ public sealed class WatchlistService(
     ApplicationDbContext dbContext,
     ITmdbService tmdbService) : IWatchlistService
 {
-    public async Task<Result<IMedia?>> GetRandomMediaFromWatchlistAsync(long telegramUserId, CancellationToken cancellationToken = default)
+    public async Task<Result<IMedia?>> GetRandomMediaFromWatchlistAsync(long telegramUserId,
+        CancellationToken cancellationToken = default)
     {
-        var rowsCount = await dbContext.WatchlistMedias.CountAsync(
-            x => x.TelegramUserId == telegramUserId,
-            cancellationToken: cancellationToken);
-        
-        var rand = new Random();
-        var skip = rand.Next(0, rowsCount);
-        
-        var result = await dbContext.WatchlistMedias
-            .OrderBy(x => Guid.NewGuid())
+        var count = await dbContext.WatchlistMedias
             .Where(x => x.TelegramUserId == telegramUserId)
-            .Skip(skip)
-            .Take(1)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cancellationToken);
+            .CountAsync(CancellationToken.None);
 
-        if (result is null)
+        if (count == 0)
         {
             return Result<IMedia?>.Failure(WatchlistMediaErrors.NotFound);
         }
-        
-        var media = await tmdbService.GetMediaByIdAsync(result.MediaId, result.MediaType, cancellationToken);
-        
+
+        var skip = Random.Shared.Next(0, count);
+
+        var row = await dbContext.WatchlistMedias
+            .Where(x => x.TelegramUserId == telegramUserId)
+            .OrderBy(x => x.Id)
+            .Skip(skip)
+            .Take(1)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(CancellationToken.None);
+
+        if (row is null)
+        {
+            return Result<IMedia?>.Failure(WatchlistMediaErrors.NotFound);
+        }
+
+        var media = await tmdbService.GetMediaByIdAsync(row.MediaId, row.MediaType, cancellationToken);
+
         return Result<IMedia?>.Success(media);
     }
 
