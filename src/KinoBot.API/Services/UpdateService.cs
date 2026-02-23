@@ -14,7 +14,7 @@ public sealed class UpdateService(
         Update update,
         CancellationToken ct = default)
     {
-        await dispatcher.DispatchAsync(update, bot, CancellationToken.None);
+        await dispatcher.DispatchAsync(update, bot, ct);
     }
 
     public Task HandleErrorAsync(ITelegramBotClient bot,

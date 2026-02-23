@@ -16,7 +16,9 @@ public sealed class InlineQueryHandler(
         return true;
     }
 
-    public async Task HandleAsync(InlineQueryUpdate update, ITelegramBotClient bot, CancellationToken ct = default)
+    public async Task HandleAsync(InlineQueryUpdate update,
+        ITelegramBotClient bot,
+        CancellationToken ct = default)
     {
         var inlineQuery = update.InlineQuery;
 

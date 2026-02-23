@@ -14,7 +14,9 @@ public sealed class UpdateDispatcher(IServiceProvider sp) : IUpdateDispatcher
         return DispatchInternal((dynamic)adaptedUpdate, bot, ct);
     }
     
-    private async Task DispatchInternal<TUpdate>(TUpdate update, ITelegramBotClient bot, CancellationToken ct = default)
+    private async Task DispatchInternal<TUpdate>(TUpdate update,
+        ITelegramBotClient bot,
+        CancellationToken ct = default)
         where TUpdate : IUpdate
     {
         using var scope = sp.CreateScope();

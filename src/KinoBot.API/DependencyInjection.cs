@@ -1,7 +1,5 @@
 using System.Text.Json.Serialization;
 using KinoBot.API.Abstractions;
-using KinoBot.API.CallbackData;
-using KinoBot.API.CallbackQueryHandlers;
 using KinoBot.API.Configs;
 using KinoBot.API.Messaging;
 using KinoBot.API.Services;
@@ -9,7 +7,6 @@ using KinoBot.API.UpdateHandlers;
 using KinoBot.API.Updates;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
-using Telegram.Bot.Types;
 
 namespace KinoBot.API;
 
@@ -29,7 +26,6 @@ public static class DependencyInjection
             services
                 .AddTelegram(config)
                 .AddTmdb(config)
-                .AddCallbackQueryHandlers()
                 .AddCaching(config)
                 .AddUpdateHandlers();
 
@@ -87,21 +83,12 @@ public static class DependencyInjection
             return services;
         }
 
-        private IServiceCollection AddCallbackQueryHandlers()
-        {
-            services
-                .AddScoped<ICallbackQueryHandler<AddMediaToWatchlistCallbackData>,
-                    AddMediaToWatchlistCallbackQueryHandler>();
-
-            return services;
-        }
-
         private IServiceCollection AddUpdateHandlers()
         {
-            services.AddScoped<IUpdateHandler<ChosenInlineResultUpdate>, ChosenInlineResultRandomHandler>();
-            services.AddScoped<IUpdateHandler<ChosenInlineResultUpdate>, ChosenInlineResultHandler>();
+            services.AddScoped<IUpdateHandler<ChosenInlineResultUpdate>, GetRandomMediaChosenInlineResultHandler>();
+            services.AddScoped<IUpdateHandler<ChosenInlineResultUpdate>, GetMediaDetailsChosenInlineResultHandler>();
             services.AddScoped<IUpdateHandler<InlineQueryUpdate>, InlineQueryHandler>();
-            services.AddScoped<IUpdateHandler<CallbackQueryUpdate>, CallbackQueryHandler>();
+            services.AddScoped<IUpdateHandler<CallbackQueryUpdate>, AddMediaToWatchlistCallbackQueryHandler>();
             services.AddSingleton<IUpdateDispatcher, UpdateDispatcher>();
 
             return services;

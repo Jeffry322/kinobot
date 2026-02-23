@@ -1,22 +1,31 @@
+using System.Text.Json;
 using KinoBot.API.Abstractions;
 using KinoBot.API.CallbackData;
+using KinoBot.API.Updates;
 using Kinobot.Domain.Entities;
 using Kinobot.Shared;
 using Telegram.Bot;
-using Telegram.Bot.Types;
 
-namespace KinoBot.API.CallbackQueryHandlers;
+namespace KinoBot.API.UpdateHandlers;
 
 public sealed class AddMediaToWatchlistCallbackQueryHandler(
-    IWatchlistService watchlistService)
-    : ICallbackQueryHandler<AddMediaToWatchlistCallbackData>
+    IWatchlistService watchlistService) 
+    : IUpdateHandler<CallbackQueryUpdate>
 {
-    public async Task HandleCallbackQuery(ITelegramBotClient bot,
-        CallbackQuery query,
-        AddMediaToWatchlistCallbackData data,
+    public bool CanHandle(CallbackQueryUpdate update)
+    {
+        return update.CallbackQuery.Data != null 
+            && JsonSerializer.Deserialize<ICallbackData>(update.CallbackQuery.Data) is AddMediaToWatchlistCallbackData;
+    }
+
+    public async Task HandleAsync(CallbackQueryUpdate update,
+        ITelegramBotClient bot,
         CancellationToken ct = default)
     {
-        var userId = query.From.Id;
+        var userId = update.CallbackQuery.From.Id;
+        var queryId = update.CallbackQuery.Id;
+        var data = JsonSerializer.Deserialize<AddMediaToWatchlistCallbackData>(update.CallbackQuery.Data!)!;
+        
         var result = await watchlistService.AddMediaToWatchlistAsync(data.MediaId, data.MediaType, userId, ct);
 
         if (!result.IsSuccess)
@@ -27,15 +36,15 @@ public sealed class AddMediaToWatchlistCallbackQueryHandler(
                 DatabaseErrors.SaveChangesErrorCode => "Something went wrong. Please try again later.",
                 _ => "Could not add to watchlist."
             };
-
-            await bot.AnswerCallbackQuery(query.Id,
+            
+            await bot.AnswerCallbackQuery(queryId,
                 message,
                 false,
                 cancellationToken: ct);
             return;
         }
         
-        await bot.AnswerCallbackQuery(query.Id,
+        await bot.AnswerCallbackQuery(queryId,
             "Added to watchlist!",
             false,
             cancellationToken: ct);

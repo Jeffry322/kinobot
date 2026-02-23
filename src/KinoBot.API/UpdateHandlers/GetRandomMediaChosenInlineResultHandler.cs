@@ -5,8 +5,8 @@ using Telegram.Bot;
 
 namespace KinoBot.API.UpdateHandlers;
 
-public sealed class ChosenInlineResultRandomHandler(
-    ILogger<ChosenInlineResultRandomHandler> logger,
+public sealed class GetRandomMediaChosenInlineResultHandler(
+    ILogger<GetRandomMediaChosenInlineResultHandler> logger,
     IWatchlistService watchlistService)
     : IUpdateHandler<ChosenInlineResultUpdate>
 {
@@ -15,14 +15,16 @@ public sealed class ChosenInlineResultRandomHandler(
         return update.ChosenInlineResult.ResultId == "random";
     }
 
-    public async Task HandleAsync(ChosenInlineResultUpdate update, ITelegramBotClient bot, CancellationToken ct = default)
+    public async Task HandleAsync(ChosenInlineResultUpdate update,
+        ITelegramBotClient bot,
+        CancellationToken ct = default)
     {
         var chosenInlineResult = update.ChosenInlineResult;
         
-        var randomMedia = await GetRandomMovieFromWatchlist(chosenInlineResult.From.Id, CancellationToken.None);
+        var randomMedia = await GetRandomMovieFromWatchlist(chosenInlineResult.From.Id, ct);
         if (randomMedia is null) return;
         
-        await bot.EditMessageCaption(randomMedia.ToView(), chosenInlineResult.InlineMessageId!, CancellationToken.None);
+        await bot.EditMessageCaption(randomMedia.ToView(), chosenInlineResult.InlineMessageId!, ct);
     }
     
     private async Task<IMedia?> GetRandomMovieFromWatchlist(long telegramUserId, CancellationToken ct)

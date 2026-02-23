@@ -5,7 +5,7 @@ using Telegram.Bot;
 
 namespace KinoBot.API.UpdateHandlers;
 
-public sealed class ChosenInlineResultHandler(
+public sealed class GetMediaDetailsChosenInlineResultHandler(
     ITmdbService tmdbService)
     : IUpdateHandler<ChosenInlineResultUpdate>
 {
@@ -24,12 +24,14 @@ public sealed class ChosenInlineResultHandler(
         }
     }
 
-    public async Task HandleAsync(ChosenInlineResultUpdate update, ITelegramBotClient bot, CancellationToken ct = default)
+    public async Task HandleAsync(ChosenInlineResultUpdate update,
+        ITelegramBotClient bot,
+        CancellationToken ct = default)
     {
         var mediaType = update.ChosenInlineResult.ResultId.Split(':')[0];
         var id = update.ChosenInlineResult.ResultId.Split(':')[1];
 
-        var media = await tmdbService.GetMediaByIdAsync(int.Parse(id), mediaType, CancellationToken.None);
+        var media = await tmdbService.GetMediaByIdAsync(int.Parse(id), mediaType, ct);
         
         if (media is null)
         {
@@ -39,6 +41,6 @@ public sealed class ChosenInlineResultHandler(
         var view = media.ToView();
         var inlineMessageId = update.ChosenInlineResult.InlineMessageId!;
         
-        await bot.EditMessageCaption(view, inlineMessageId, CancellationToken.None);
+        await bot.EditMessageCaption(view, inlineMessageId, ct);
     }
 }
